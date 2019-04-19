@@ -3,7 +3,9 @@
 #import <UIKit/UIKit.h>
 
 @interface RNImageAlbum ()
-@property (nonatomic,copy) RCTResponseSenderBlock successCallBack;
+
+@property (nonatomic,copy) RCTResponseSenderBlock doCallBack;
+
 @end
 
 @implementation RNImageAlbum
@@ -13,12 +15,13 @@
 }
 RCT_EXPORT_MODULE()
 
-RCT_EXPORT_METHOD(saveToAlbum:(NSString *)imageUrl callback:(RCTResponseSenderBlock)callback) {
-    self.successCallBack = callback;
-    if ([self validateImageUrl:imageUrl]) {
+
+RCT_EXPORT_METHOD(saveToAlbum:(NSString *)url callback:(RCTResponseSenderBlock)callback) {
+    self.doCallBack = callback;
+    if ([self validateUrl:url]) {
         dispatch_queue_t ioQueue = dispatch_queue_create("com.image.download", DISPATCH_QUEUE_SERIAL);
         dispatch_async(ioQueue, ^{
-            NSURL *imageURL = [NSURL URLWithString:imageUrl];
+            NSURL *imageURL = [NSURL URLWithString:url];
             NSData *imageData = [NSData dataWithContentsOfURL:imageURL];
             
             if (imageData) {
@@ -32,10 +35,10 @@ RCT_EXPORT_METHOD(saveToAlbum:(NSString *)imageUrl callback:(RCTResponseSenderBl
 }
 
 //验证传入的imageUrl是否合法
-- (BOOL)validateImageUrl:(NSString *)imageUrl {
-    if (!imageUrl || imageUrl.length == 0) {
-        if (self.successCallBack) {
-            self.successCallBack(@[@"imageUrl参数为空"]);
+- (BOOL)validateUrl:(NSString *)url {
+    if (!url || url.length == 0) {
+        if (self.doCallBack) {
+            self.doCallBack(@[@"url参数为空"]);
         }
         return NO;
     }
@@ -43,8 +46,8 @@ RCT_EXPORT_METHOD(saveToAlbum:(NSString *)imageUrl callback:(RCTResponseSenderBl
 }
 
 - (void)imageSavedToPhotosAlbum:(UIImage *)image didFinishSavingWithError:(NSError *)error contextInfo:(void *)contextInfo {
-    if (self.successCallBack) {
-        self.successCallBack(@[!error ? @"成功保存图片到相册" : error.localizedDescription]);
+    if (self.doCallBack) {
+        self.doCallBack(@[!error ? @"成功保存图片到相册" : error.localizedDescription]);
     }
 }
 

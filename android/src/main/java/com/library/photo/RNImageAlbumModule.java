@@ -1,12 +1,16 @@
 
 package com.library.photo;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.MediaScannerConnection;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Message;
+import android.widget.Toast;
 
 import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
@@ -23,8 +27,8 @@ import java.net.URL;
 public class RNImageAlbumModule extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
-    private Callback successCallback = null;
-    private static String suffix;
+    private static Callback doCallback = null;
+    private static String suffix = null;
 
     public RNImageAlbumModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -37,15 +41,23 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void saveToAlbum(String imageUrl, Callback callback) {
-        this.successCallback = callback;
-        suffix = this.getSuffix(imageUrl);
+    public void saveToAlbum(final String url, Callback callback) {
+        doCallback = callback;
+        suffix = this.getSuffix(url);
 
-        if (this.validateImageUrl(imageUrl)) {
-            new Task().execute(imageUrl);
+        if (this.validateUrl(url)) {
+            PermissionUtils.permissionsCheck(getCurrentActivity(),new String[]{ Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.WRITE_EXTERNAL_STORAGE },new PermissionUtils.OnPermissionListener() {
+                @Override
+                public void onPermissionGranted() {
+                    new Task().execute(url);
+                }
+                @Override
+                public void onPermissionDenied(String[] deniedPermissions) {
+                    Toast.makeText(getCurrentActivity(),"读写权限不够,无法下载！",Toast.LENGTH_SHORT).show();
+                }
+            });
         }
     }
-
 
     private String getSuffix(String imageUrl) {
         String suffix = imageUrl.substring(imageUrl.lastIndexOf(".") + 1);
@@ -55,12 +67,11 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
         return suffix;
     }
 
-
-    private boolean validateImageUrl(String imageUrl) {
+    private boolean validateUrl(String url) {
         //验证传入的imageUrl是否合法
-        if (imageUrl == null || imageUrl.isEmpty()) {
-            if (this.successCallback != null) {
-                this.successCallback.invoke("imageUrl参数为空");
+        if (url == null || url.isEmpty()) {
+            if (doCallback != null) {
+                doCallback.invoke("url参数为空");
                 return false;
             }
         }
@@ -127,22 +138,24 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
             bos.flush();
             bos.close();
 
-//            MediaScannerConnection.scanFile(mContext, new String[] { imageFile.getAbsolutePath()}, null, new MediaScannerConnection.OnScanCompletedListener() {
-//                public void onScanCompleted(String path, Uri uri)
-//                {
-//                    if( uri == null ){
-//                        saveMessage = "添加图片错误";
-//                    }
-//                }
-//            });
-
-            if (this.successCallback != null) {
-                this.successCallback.invoke("成功保存图片到相册");
-            }
+            MediaScannerConnection.scanFile(getReactApplicationContext(), new String[] { file.getAbsolutePath()}, null, new MediaScannerConnection.OnScanCompletedListener() {
+                public void onScanCompleted(String path, Uri uri) {
+                    if(uri == null) {
+                        if (doCallback != null) {
+                            doCallback.invoke("添加图片错误");
+                        }
+                    }
+                    else {
+                        if (doCallback != null) {
+                            doCallback.invoke("成功保存图片到相册");
+                        }
+                    }
+                }
+            });
         } catch (Exception e) {
             e.printStackTrace();
-            if (this.successCallback != null) {
-                this.successCallback.invoke(e.getMessage());
+            if (doCallback != null) {
+                doCallback.invoke(e.getMessage());
             }
         }
     }
