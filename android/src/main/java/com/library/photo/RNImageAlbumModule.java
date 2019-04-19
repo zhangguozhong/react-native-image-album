@@ -41,7 +41,7 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
     }
 
     @ReactMethod
-    public void saveToAlbum(final String url, Callback callback) {
+    public void saveImageWithUrl(final String url, Callback callback) {
         doCallback = callback;
         suffix = this.getSuffix(url);
 

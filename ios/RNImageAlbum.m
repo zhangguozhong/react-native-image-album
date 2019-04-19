@@ -16,7 +16,7 @@
 RCT_EXPORT_MODULE()
 
 
-RCT_EXPORT_METHOD(saveToAlbum:(NSString *)url callback:(RCTResponseSenderBlock)callback) {
+RCT_EXPORT_METHOD(saveImageWithUrl:(NSString *)url callback:(RCTResponseSenderBlock)callback) {
     self.doCallBack = callback;
     if ([self validateUrl:url]) {
         dispatch_queue_t ioQueue = dispatch_queue_create("com.image.download", DISPATCH_QUEUE_SERIAL);
