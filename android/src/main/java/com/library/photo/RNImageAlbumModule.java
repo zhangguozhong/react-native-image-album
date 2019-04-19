@@ -97,7 +97,6 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
         return bitmap;
     }
 
-
     /**
      * 保存位图到本地
      *
@@ -134,10 +133,9 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
             if( type != null ) {
                 bitmap.compress(type,100, bos);
             }
-            fileOutputStream.close();
+
             bos.flush();
             bos.close();
-
             MediaScannerConnection.scanFile(getReactApplicationContext(), new String[] { file.getAbsolutePath()}, null, new MediaScannerConnection.OnScanCompletedListener() {
                 public void onScanCompleted(String path, Uri uri) {
                     if(uri == null) {
