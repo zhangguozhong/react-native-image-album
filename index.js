@@ -1,10 +1,16 @@
 import { NativeModules } from 'react-native';
 const { RNImageAlbum } = NativeModules;
 
-export default class ImageAlbum {
+const ImageAlbum = {
+    //保存图片
+    saveImageWithUrl:function (url,callback) {
+        if (!url) {
+            return;
+        }
 
-    static saveToAlbum(url,callback) {
-        //保存图片至相册
-        RNImageAlbum.saveToAlbum(url,callback);
+        RNImageAlbum.saveImageWithUrl(url, callback);
     }
 };
+
+export default ImageAlbum;
+
