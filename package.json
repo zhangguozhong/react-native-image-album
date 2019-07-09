@@ -1,6 +1,6 @@
 {
   "name": "react-native-image-album",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "保存网络图片到相册，支持ios与android",
   "main": "index.js",
   "scripts": {

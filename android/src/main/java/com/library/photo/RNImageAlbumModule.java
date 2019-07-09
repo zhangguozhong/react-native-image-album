@@ -3,6 +3,7 @@ package com.library.photo;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.media.MediaScannerConnection;
@@ -10,6 +11,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
 import android.os.Message;
+import android.provider.MediaStore;
 import android.widget.Toast;
 
 import com.facebook.react.bridge.ReactApplicationContext;
@@ -19,6 +21,7 @@ import com.facebook.react.bridge.Callback;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -28,7 +31,6 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
 
     private final ReactApplicationContext reactContext;
     private static Callback doCallback = null;
-    private static String suffix = null;
 
     public RNImageAlbumModule(ReactApplicationContext reactContext) {
         super(reactContext);
@@ -43,8 +45,6 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
     @ReactMethod
     public void saveImageWithUrl(final String url, Callback callback) {
         doCallback = callback;
-        suffix = this.getSuffix(url);
-
         if (this.validateUrl(url)) {
             PermissionUtils.permissionsCheck(getCurrentActivity(),new String[]{ Manifest.permission.READ_EXTERNAL_STORAGE,Manifest.permission.WRITE_EXTERNAL_STORAGE },new PermissionUtils.OnPermissionListener() {
                 @Override
@@ -57,14 +57,6 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
                 }
             });
         }
-    }
-
-    private String getSuffix(String imageUrl) {
-        String suffix = imageUrl.substring(imageUrl.lastIndexOf(".") + 1);
-        if(suffix.contains("?")) {
-            suffix = suffix.substring(0, suffix.indexOf("?"));
-        }
-        return suffix;
     }
 
     private boolean validateUrl(String url) {
@@ -103,36 +95,17 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
      * @param path 本地路径
      */
     private void SaveImage(Bitmap bitmap, String path) {
-        File file = new File(path);
-        FileOutputStream fileOutputStream = null;
-        //文件夹不存在，则创建它
-        if (!file.exists()) {
-            file.mkdir();
+        File appDir = new File(path);
+        if (!appDir.exists()) { //文件夹不存在，则创建它
+            appDir.mkdir();
         }
-        try {
-            fileOutputStream = new FileOutputStream(path + "/" + System.currentTimeMillis() + "." + suffix);
-            BufferedOutputStream bos = new BufferedOutputStream(fileOutputStream);
-            Bitmap.CompressFormat type;
-            switch (suffix.toLowerCase()) {
-                case "jpg":
-                    type = Bitmap.CompressFormat.JPEG;
-                    break;
-                case "jpeg":
-                    type = Bitmap.CompressFormat.JPEG;
-                    break;
-                case "png":
-                    type = Bitmap.CompressFormat.PNG;
-                    break;
-                case "webp":
-                    type = Bitmap.CompressFormat.WEBP;
-                    break;
-                default:
-                    type = null;
-            }
 
-            if( type != null ) {
-                bitmap.compress(type,100, bos);
-            }
+        final String fileName = System.currentTimeMillis() + ".jpg";
+        final File file = new File(path, fileName);
+        try {
+            FileOutputStream fileOutputStream = new FileOutputStream(file);
+            BufferedOutputStream bos = new BufferedOutputStream(fileOutputStream);
+            bitmap.compress(Bitmap.CompressFormat.JPEG,100, bos);
 
             bos.flush();
             bos.close();
@@ -142,11 +115,18 @@ public class RNImageAlbumModule extends ReactContextBaseJavaModule {
                         if (doCallback != null) {
                             doCallback.invoke("添加图片错误");
                         }
-                    }
-                    else {
-                        if (doCallback != null) {
-                            doCallback.invoke("成功保存图片到相册");
+                    } else {
+                        try {
+                            MediaStore.Images.Media.insertImage(getReactApplicationContext().getContentResolver(),
+                                    path, fileName, null);//保存到图库
+                            if (doCallback != null) {
+                                doCallback.invoke("成功保存图片到相册");
+                            }
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
                         }
+
+                        getReactApplicationContext().sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, uri));//广播刷新图库
                     }
                 }
             });
